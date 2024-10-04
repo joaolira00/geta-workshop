@@ -1,0 +1,6 @@
+@MedGETA_HostAddress = http://localhost:5291
+
+GET {{MedGETA_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
