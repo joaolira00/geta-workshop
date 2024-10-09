@@ -1,5 +1,8 @@
 using MedGETA.Context;
+using MedGETA.DTO;
 using MedGETA.DTO.Record;
+using MedGETA.Hospitals;
+using MedGETA.Patients;
 using MedGETA.Records;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,18 +22,21 @@ namespace MedGETA.Controllers
         {
             List<Record>? records = _context.Records?.ToList();
 
-            if (records is null)
+            if (records == null)
             {
                 return NotFound("No Records were found.");
             }
 
-            List<RecordModel> recordsDTO = records.Select(r => new RecordModel
+            List<RecordModel> recordModels = records.Select(r => new RecordModel
             {
                 Id = r.Id,
-                Diagnostic = r.Diagnostic
+                Description = r.Description,
+                PatientName = r.PatientName,
+                HospitalName = r.HospitalName,
+                CreatedAt = DateTime.UtcNow
             }).ToList();
 
-            return recordsDTO;
+            return Ok(recordModels);
         }
 
         [HttpGet("findRecord/{id:guid}", Name="GetRecordById")]
@@ -46,27 +52,51 @@ namespace MedGETA.Controllers
             RecordModel recordDTO = new()
             {
                 Id = record.Id,
-                Diagnostic = record.Diagnostic
+                Description = record.Description
             };
 
             return recordDTO;
         }
 
         [HttpPost("registerNewRecord")]
-        public ActionResult<Record> CreateNewRecord([FromBody] Record? _Record)
+        public ActionResult<Record> CreateNewRecord([FromBody] RecordDto recordDTO)
         {
-            if (_Record is null)
+            if (recordDTO is null || recordDTO.PatientId == Guid.Empty || recordDTO.HospitalId == Guid.Empty)
             {
-                return BadRequest("Incomplete or wrong data, try again.");
+                return BadRequest("Incomplete or wrong data, provide the patient and hospital Ids and try again.");
             }
 
-            _Record.GenerateUUID();
+            Hospital? _hospital = _context.Hospitals?.FirstOrDefault(h => h.Id == recordDTO.HospitalId);
+            Patient? _patient = _context.Patients?.FirstOrDefault(p => p.Id == recordDTO.PatientId);
 
-            _context.Records?.Add(_Record);
+            if (_hospital is null)
+            {
+                return NotFound("No hospitals found with this Id.");
+            }
+
+
+            if (_patient is null)
+            {
+                return NotFound("No patients found with this Id.");
+            }
+
+            Record newRecord = new()
+            {
+                Id = Guid.NewGuid(),
+                Description = recordDTO.Description,
+                PatientId = recordDTO.PatientId,
+                PatientName = _patient.Name,
+                HospitalId = recordDTO.HospitalId,
+                HospitalName = _hospital.Name,
+                CreatedAt = DateTime.UtcNow
+            };
+            
+
+            _context.Records?.Add(newRecord);
             _context.SaveChanges();
 
             return new CreatedAtRouteResult("GetRecordById",
-            new { id = _Record.Id, _Record});
+            new { id = newRecord.Id}, newRecord);
         }
 
         [HttpDelete("DeleteRecord")]
