@@ -12,7 +12,15 @@ namespace MedGETA.Records
 
         [Required]
         [MaxLength(300)]
-        public string? Diagnostic { get; set; }
+        public string? Description { get; set; }
+
+        [Required]
+        public string? PatientName { get; set; }
+
+        [Required]
+        public string? HospitalName { get; set; }
+
+        public DateTime CreatedAt { get; set; }
 
         public Guid GenerateUUID()
         {
@@ -21,11 +29,13 @@ namespace MedGETA.Records
         }
 
         //1:N with Patient
+        [Required]
         public Guid PatientId { get; set; }
         [JsonIgnore]
         public Patient? Patient { get; set; }
 
         //1:N with Hospitals
+        [Required]
         public Guid? HospitalId { get; set; }
         [JsonIgnore]
         public Hospital? Hospital { get; set; }
